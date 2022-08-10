@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { CubeComponent } from './cube.component';
+import { MuonpiComponent } from './muonpi.component';
 
-describe('CubeComponent', () => {
-  let component: CubeComponent;
-  let fixture: ComponentFixture<CubeComponent>;
+describe('MuonpiComponent', () => {
+  let component: MuonpiComponent;
+  let fixture: ComponentFixture<MuonpiComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ CubeComponent ]
+      declarations: [ MuonpiComponent ]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(CubeComponent);
+    fixture = TestBed.createComponent(MuonpiComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
