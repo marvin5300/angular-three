@@ -10,11 +10,7 @@ import Stats from 'three/examples/jsm/libs/stats.module';
 
 import { GUI } from 'lil-gui';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-// import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial';
-// import { Wireframe } from 'three/examples/jsm/lines/Wireframe';
-// import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
-// import { WireframeGeometry2 } from 'three/examples/jsm/lines/WireframeGeometry2';
-// import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeometry';
+import { Lensflare, LensflareElement } from 'three/examples/jsm/objects/Lensflare';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
@@ -22,6 +18,7 @@ import { BloomPass } from 'three/examples/jsm/postprocessing/BloomPass';
 import { FilmPass } from 'three/examples/jsm/postprocessing/FilmPass';
 import { FocusShader } from 'three/examples/jsm/shaders/FocusShader';
 import { star_sphere } from './objects/star_sphere';
+import { moon } from './objects/moon';
 
 @Component({
   selector: 'app-muonpi',
@@ -61,7 +58,9 @@ export class MuonpiComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
     this.items.push(new detector());
-    this.items.push(new earth(256,256));
+    // this.items.push(new ground(256,256));
+    this.items.push(new earth(1000));
+    this.items.push(new moon(0.2725 * 1000, new THREE.Vector3(12000, 0, 12000)));
     this.items.push(new star_sphere());
     // this.items.push(new proton());
     this.init_scene();
@@ -86,49 +85,81 @@ export class MuonpiComponent implements AfterViewInit {
     // this.scene.fog = new THREE.FogExp2(0x000104, 0.0000675);
     // this.scene.fog = new THREE.FogExp2( 0xefd1b5, 0.00025 );
 
-
-    const geometry = new THREE.BufferGeometry();
-    const vertices = [];
-
-    for ( let i = 0; i < 10000; i ++ ) {
-
-      vertices.push( THREE.MathUtils.randFloatSpread( 2000 ) ); // x
-      vertices.push( THREE.MathUtils.randFloatSpread( 2000 ) ); // y
-      vertices.push( THREE.MathUtils.randFloatSpread( 2000 ) ); // z
-
-    }
-
-    geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
-
-    const particles = new THREE.Points( geometry, new THREE.PointsMaterial( { color: 0x888888 } ) );
-    this.scene.add( particles );
-
     this.items.forEach((item: any) => {
       // this.scene.add(item.item);
       item.add(this.scene);
     });
 
     // camera fixed
-    this.camera = new THREE.PerspectiveCamera(20, this.canvas.clientWidth / this.canvas.clientHeight, 1, 50000);
+    this.camera = new THREE.PerspectiveCamera(20, this.canvas.clientWidth / this.canvas.clientHeight, 300, 50000);
     this.camera.position.set(0, 700, 7000);
     this.camera.lookAt(this.scene.position);
 
     // light
-    const hemiLight = new THREE.HemisphereLight( 0xffffff, 0x444444 );
-    hemiLight.position.set( 0, 20, 0 );
-    this.scene.add( hemiLight );
+    // const hemiLight = new THREE.HemisphereLight( 0xffffff, 0x444444 );
+    // hemiLight.position.set( 0, 20, 0 );
+    // this.scene.add( hemiLight );
+
+
+    const hemiLuminousIrradiances = {
+      "0.0001 lx (Moonless Night)": 0.0001,
+      "0.002 lx (Night Airglow)": 0.002,
+      "0.5 lx (Full Moon)": 0.5,
+      "3.4 lx (City Twilight)": 3.4,
+      "50 lx (Living Room)": 50,
+      "100 lx (Very Overcast)": 100,
+      "350 lx (Office Room)": 350,
+      "400 lx (Sunrise/Sunset)": 400,
+      "1000 lx (Overcast)": 1000,
+      "18000 lx (Daylight)": 18000,
+      "50000 lx (Direct Sun)": 50000
+    };
+
+    let sun = new THREE.Mesh(new THREE.SphereBufferGeometry(30, 6, 8), new THREE.MeshStandardMaterial({
+      emissive: 0xffffee,
+      emissiveIntensity: 1,
+      color: 0x000000})
+    );
+    sun.position.set(20000,0,0);
+
+    this.scene.add(sun);
+
+    var ambientLight = new THREE.AmbientLight(0xffffff, 0.03);
+    this.scene.add(ambientLight);
 
     const dirLight = new THREE.DirectionalLight( 0xffffff );
-    dirLight.position.set( - 3, 10, - 10 );
-    dirLight.castShadow = true;
-    dirLight.shadow.camera.top = 2;
-    dirLight.shadow.camera.bottom = - 2;
-    dirLight.shadow.camera.left = - 2;
-    dirLight.shadow.camera.right = 2;
-    dirLight.shadow.camera.near = 0.1;
-    dirLight.shadow.camera.far = 40;
+    dirLight.position.set(20000, 0, 0 );
     this.scene.add( dirLight );
+    this.scene.add(dirLight);
 
+
+    let textureLoader = new THREE.TextureLoader();
+    const textureFlare0 = textureLoader.load('assets/textures/lensflare0.png');
+    const textureFlare3 = textureLoader.load('assets/textures/lensflare3.png');
+
+    let addLight = (h: number, s: number, l: number, x: number, y: number, z: number) => {
+      const light = new THREE.PointLight(0xffffff, 1.5, 20000);
+      light.color.setHSL(h, s, l);
+      light.position.set(x, y, z);
+
+      const lensflare = new Lensflare();
+      lensflare.addElement(new LensflareElement(textureFlare0, 120, 0, light.color));
+      // lensflare.addElement(new LensflareElement(textureFlare3, 60, 0.6));
+      // lensflare.addElement(new LensflareElement(textureFlare3, 70, 0.7));
+      // lensflare.addElement(new LensflareElement(textureFlare3, 120, 0.9));
+      // lensflare.addElement(new LensflareElement(textureFlare3, 70, 1));
+      lensflare.position.set(0,20,0);
+      light.add(lensflare);
+      this.scene.add(light);
+    }
+
+    addLight(0.1, 0.7, 0.5, 20000, 0, 0);
+    // addLight(0.08, 0.8, 0.5, 0, 0, - 1000);
+    // addLight(0.995, 0.5, 0.9, 5000, 5000, - 1000);
+
+
+    const mesh = new THREE.Mesh(new THREE.SphereBufferGeometry(100,32,32), new THREE.MeshBasicMaterial({}));
+    mesh.position.set(20000, 0, 0);
     // floor
     // const mesh = new THREE.Mesh( new THREE.PlaneGeometry( 10000, 10000 ), new THREE.MeshPhongMaterial( { color: 0x999999, depthWrite: false } ) );
     // mesh.rotation.x = - Math.PI / 2;
@@ -140,7 +171,7 @@ export class MuonpiComponent implements AfterViewInit {
     // postprocessing
 
     const renderModel = new RenderPass(this.scene, this.camera);
-    const effectBloom = new BloomPass(0.75);
+    const effectBloom = new BloomPass(0.74);
     const effectFilm = new FilmPass(0.5, 0.5, 1448, 0);
 
     const effectFocus = new ShaderPass(FocusShader);
@@ -188,11 +219,19 @@ export class MuonpiComponent implements AfterViewInit {
   }
 
   private start_rendering_loop(): void {
+    let delta = 0;
+    let clock = new THREE.Clock();
     let component: MuonpiComponent = this;
-
+    let interval = 1 / 30;
     (function render() {
       requestAnimationFrame(render);
-      component.render();
+
+      delta += clock.getDelta();
+      if (delta > interval) {
+        // The draw or time dependent code are here
+        component.render();
+        delta = delta % interval;
+      }
     })();
   }
 
