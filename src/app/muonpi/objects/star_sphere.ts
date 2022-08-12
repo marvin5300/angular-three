@@ -13,8 +13,8 @@ export class star_sphere extends gl_item {
   public add(scene: THREE.Scene): void {
     // The loop will move from z position of -1000 to z position 1000, adding a random particle at each position.
 
-    const geometry = new THREE.BufferGeometry();
-    const vertices = [];
+    let geometry = new THREE.BufferGeometry();
+    let vertices = [];
 
     for (let i = 0; i < this.n_stars; i++) {
       var vec = new THREE.Vector3();
@@ -23,8 +23,8 @@ export class star_sphere extends gl_item {
       vertices.push(vec.y); // y
       vertices.push(vec.z); // z
     }
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-    const particles = new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0x888888 }));
+    geometry.setAttribute('position', new THREE.Float16BufferAttribute(vertices, 3));
+    let particles = new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0x888888 }));
     scene.add(particles);
   }
 

@@ -10,7 +10,6 @@ import Stats from 'three/examples/jsm/libs/stats.module';
 
 import { GUI } from 'lil-gui';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { Lensflare, LensflareElement } from 'three/examples/jsm/objects/Lensflare';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
@@ -19,6 +18,7 @@ import { FilmPass } from 'three/examples/jsm/postprocessing/FilmPass';
 import { FocusShader } from 'three/examples/jsm/shaders/FocusShader';
 import { star_sphere } from './objects/star_sphere';
 import { moon } from './objects/moon';
+import { sun } from './objects/sun';
 
 @Component({
   selector: 'app-muonpi',
@@ -40,9 +40,6 @@ export class MuonpiComponent implements AfterViewInit {
   private controls?: OrbitControls;
   private stats!: Stats;
   private gui!: GUI;
-
-  private clock = new THREE.Clock();
-
   private items: gl_item[] = [];
 
   resizeObservable!: Observable<Event>;
@@ -61,7 +58,8 @@ export class MuonpiComponent implements AfterViewInit {
     // this.items.push(new ground(256,256));
     this.items.push(new earth(1000));
     this.items.push(new moon(0.2725 * 1000, new THREE.Vector3(12000, 0, 12000)));
-    this.items.push(new star_sphere());
+    this.items.push(new sun());
+    this.items.push(new star_sphere(20000));
     // this.items.push(new proton());
     this.init_scene();
     this.init_gui();
@@ -86,13 +84,12 @@ export class MuonpiComponent implements AfterViewInit {
     // this.scene.fog = new THREE.FogExp2( 0xefd1b5, 0.00025 );
 
     this.items.forEach((item: any) => {
-      // this.scene.add(item.item);
       item.add(this.scene);
     });
 
     // camera fixed
     this.camera = new THREE.PerspectiveCamera(20, this.canvas.clientWidth / this.canvas.clientHeight, 300, 50000);
-    this.camera.position.set(0, 700, 7000);
+    this.camera.position.set(0, 7000, 7000);
     this.camera.lookAt(this.scene.position);
 
     // light
@@ -101,59 +98,24 @@ export class MuonpiComponent implements AfterViewInit {
     // this.scene.add( hemiLight );
 
 
-    const hemiLuminousIrradiances = {
-      "0.0001 lx (Moonless Night)": 0.0001,
-      "0.002 lx (Night Airglow)": 0.002,
-      "0.5 lx (Full Moon)": 0.5,
-      "3.4 lx (City Twilight)": 3.4,
-      "50 lx (Living Room)": 50,
-      "100 lx (Very Overcast)": 100,
-      "350 lx (Office Room)": 350,
-      "400 lx (Sunrise/Sunset)": 400,
-      "1000 lx (Overcast)": 1000,
-      "18000 lx (Daylight)": 18000,
-      "50000 lx (Direct Sun)": 50000
-    };
-
-    let sun = new THREE.Mesh(new THREE.SphereBufferGeometry(30, 6, 8), new THREE.MeshStandardMaterial({
-      emissive: 0xffffee,
-      emissiveIntensity: 1,
-      color: 0x000000})
-    );
-    sun.position.set(20000,0,0);
-
-    this.scene.add(sun);
+    // const hemiLuminousIrradiances = {
+    //   "0.0001 lx (Moonless Night)": 0.0001,
+    //   "0.002 lx (Night Airglow)": 0.002,
+    //   "0.5 lx (Full Moon)": 0.5,
+    //   "3.4 lx (City Twilight)": 3.4,
+    //   "50 lx (Living Room)": 50,
+    //   "100 lx (Very Overcast)": 100,
+    //   "350 lx (Office Room)": 350,
+    //   "400 lx (Sunrise/Sunset)": 400,
+    //   "1000 lx (Overcast)": 1000,
+    //   "18000 lx (Daylight)": 18000,
+    //   "50000 lx (Direct Sun)": 50000
+    // };
 
     var ambientLight = new THREE.AmbientLight(0xffffff, 0.03);
     this.scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight( 0xffffff );
-    dirLight.position.set(20000, 0, 0 );
-    this.scene.add( dirLight );
-    this.scene.add(dirLight);
 
-
-    let textureLoader = new THREE.TextureLoader();
-    const textureFlare0 = textureLoader.load('assets/textures/lensflare0.png');
-    const textureFlare3 = textureLoader.load('assets/textures/lensflare3.png');
-
-    let addLight = (h: number, s: number, l: number, x: number, y: number, z: number) => {
-      const light = new THREE.PointLight(0xffffff, 1.5, 20000);
-      light.color.setHSL(h, s, l);
-      light.position.set(x, y, z);
-
-      const lensflare = new Lensflare();
-      lensflare.addElement(new LensflareElement(textureFlare0, 120, 0, light.color));
-      // lensflare.addElement(new LensflareElement(textureFlare3, 60, 0.6));
-      // lensflare.addElement(new LensflareElement(textureFlare3, 70, 0.7));
-      // lensflare.addElement(new LensflareElement(textureFlare3, 120, 0.9));
-      // lensflare.addElement(new LensflareElement(textureFlare3, 70, 1));
-      lensflare.position.set(0,20,0);
-      light.add(lensflare);
-      this.scene.add(light);
-    }
-
-    addLight(0.1, 0.7, 0.5, 20000, 0, 0);
     // addLight(0.08, 0.8, 0.5, 0, 0, - 1000);
     // addLight(0.995, 0.5, 0.9, 5000, 5000, - 1000);
 
